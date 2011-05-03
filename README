@@ -1,0 +1,3 @@
+The blackberry twitter PIN-Code based example.
+1. please register the app as client-desktop app(no callback url)
+2. please change the consumer key/secret in the TwitterConsumer.java

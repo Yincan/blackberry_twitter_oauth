@@ -1,16 +1,12 @@
+/*
+ * Copyright 2010, Intridea, Inc.
+ */
 package com.intridea.blackberry.twitteroauth;
 
 import java.util.Enumeration;
 import java.util.Vector;
 
 import javax.microedition.io.HttpConnection;
-
-import com.intridea.blackberry.twitteroauth.logger.Logger;
-import com.intridea.blackberry.twitteroauth.oauth.Action;
-import com.intridea.blackberry.twitteroauth.oauth.ActionListener;
-import com.intridea.blackberry.twitteroauth.oauth.TwitterOAuthService;
-import com.intridea.blackberry.twitteroauth.ui.PleaseWaitPopupScreen;
-import com.intridea.blackberry.twitteroauth.util.StringUtils;
 
 import net.rim.device.api.system.PersistentObject;
 import net.rim.device.api.system.PersistentStore;
@@ -21,6 +17,13 @@ import net.rim.device.api.ui.component.ButtonField;
 import net.rim.device.api.ui.component.Dialog;
 import net.rim.device.api.ui.container.MainScreen;
 import net.rim.device.api.util.Persistable;
+
+import com.intridea.blackberry.twitteroauth.logger.Logger;
+import com.intridea.blackberry.twitteroauth.oauth.Action;
+import com.intridea.blackberry.twitteroauth.oauth.ActionListener;
+import com.intridea.blackberry.twitteroauth.oauth.TwitterOAuthService;
+import com.intridea.blackberry.twitteroauth.ui.PleaseWaitPopupScreen;
+import com.intridea.blackberry.twitteroauth.util.StringUtils;
 
 /**
  * A class extending the MainScreen class, which provides default standard behavior for BlackBerry GUI applications.
@@ -40,13 +43,13 @@ public final class MyScreen extends MainScreen implements ActionListener {
         // Set the displayed title of the screen
         setTitle("Twitter blackberry oauth example app");
         titleToShare = "title title title title title";
-        
+
         ButtonField button = new ButtonField("Twitter");
-        button.setChangeListener(new FieldChangeListener(){
+        button.setChangeListener(new FieldChangeListener() {
             public void fieldChanged(Field field, int context) {
                 twitter();
             }
-            
+
         });
         add(button);
     }
@@ -90,13 +93,31 @@ public final class MyScreen extends MainScreen implements ActionListener {
                 if (consumer.hasToken()) {
                     shareToTwitter();
                 } else {
-                    loginScreen = new TwitterLoginScreen(consumer);
-                    loginScreen.addActionListener(MyScreen.this);
-                    UiApplication.getUiApplication().pushScreen(loginScreen);
+                    TwitterRequestTokenTask requestTokenTask = new TwitterRequestTokenTask();
+                    PleaseWaitPopupScreen.showScreenAndWait(requestTokenTask, "Start to connect to Twitter");
+                    if (consumer.hasToken()) {
+                        loginScreen = new TwitterLoginScreen(consumer);
+                        loginScreen.addActionListener(MyScreen.this);
+                    }
+                    if (net.rim.device.api.system.Application.isEventDispatchThread()) {
+                        UiApplication.getUiApplication().pushModalScreen(loginScreen);
+                    } else {
+                        UiApplication.getApplication().invokeAndWait(new Runnable() {
+                            public void run() {
+                                UiApplication.getUiApplication().pushModalScreen(loginScreen);
+                            }
+                        });
+                    }
                 }
             }
 
         });
+    }
+
+    private class TwitterRequestTokenTask implements Runnable {
+        public void run() {
+            consumer.requestToken();
+        }
     }
 
     private void shareToTwitter() {

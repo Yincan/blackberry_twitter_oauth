@@ -15,7 +15,7 @@ import net.rim.device.api.browser.field2.BrowserFieldNavigationRequestHandler;
 import net.rim.device.api.browser.field2.BrowserFieldRequest;
 import net.rim.device.api.browser.field2.BrowserFieldResourceRequestHandler;
 import net.rim.device.api.browser.field2.ProtocolController;
-import net.rim.device.api.browser.field2.debug.BrowserFieldDebugger;
+import net.rim.device.api.io.transport.ConnectionFactory;
 import net.rim.device.api.system.Bitmap;
 import net.rim.device.api.system.Display;
 import net.rim.device.api.ui.Color;
@@ -32,7 +32,6 @@ import net.rim.device.api.ui.decor.BackgroundFactory;
 import org.w3c.dom.Document;
 
 import com.intridea.blackberry.twitteroauth.logger.Logger;
-import com.intridea.blackberry.twitteroauth.network.HttpConnectionFactory;
 import com.intridea.blackberry.twitteroauth.oauth.Action;
 import com.intridea.blackberry.twitteroauth.oauth.ActionListener;
 import com.intridea.blackberry.twitteroauth.oauth.TwitterOAuthService;
@@ -61,24 +60,21 @@ public class TwitterLoginScreen extends MainScreen implements BrowserFieldNaviga
     protected BrowserFieldConfig bfc;
     protected BrowserField bf;
     protected MyBrowserFieldListener listener;
-    protected MyBrowserFieldDebugger debugger;
 
     protected VerticalFieldManager vfm;
     protected EvenlySpacedHorizontalFieldManager hfm1;
     protected EvenlySpacedHorizontalFieldManager hfm2;
     protected ProgressAnimationField spinner;
     private TwitterOAuthService consumer;
-    private HttpConnectionFactory factory = new HttpConnectionFactory(HttpConnectionFactory.DEFAULT_TRANSPORT_ORDER);
-
+    
     protected void onUiEngineAttached(boolean attached) {
-        if (!attached && !inError) {
-            if (StringUtils.present(this.consumer.token) && StringUtils.present(this.consumer.tokenSecret)) {
+        if (!attached) {
+            if (!inError && consumer.hasToken()) {
                 fireAction(ACTION_LOGGED_IN);
             }
         } else {
-            showLoading();
             consumer.requestToken();
-            if (StringUtils.present(this.consumer.token) && StringUtils.present(this.consumer.tokenSecret)) {
+            if (consumer.hasToken()) {
                 url = consumer.getAuthorizationUrl();
                 fetch();
             } else {
@@ -100,13 +96,12 @@ public class TwitterLoginScreen extends MainScreen implements BrowserFieldNaviga
         bfc.setProperty(BrowserFieldConfig.MDS_TRANSCODING_ENABLED, Boolean.FALSE);
         bfc.setProperty(BrowserFieldConfig.NAVIGATION_MODE, BrowserFieldConfig.NAVIGATION_MODE_POINTER);
         bfc.setProperty(BrowserFieldConfig.VIEWPORT_WIDTH, new Integer(Display.getWidth()));
+        bfc.setProperty(BrowserFieldConfig.CONNECTION_FACTORY, new ConnectionFactory());
 
         bf = new BrowserField(bfc);
 
         listener = new MyBrowserFieldListener();
         bf.addListener(listener);
-        // debugger = new MyBrowserFieldDebugger();
-        // bf.setDebugger(debugger);
 
         ((ProtocolController) bf.getController()).setNavigationRequestHandler("http", this);
         ((ProtocolController) bf.getController()).setResourceRequestHandler("http", this);
@@ -128,6 +123,8 @@ public class TwitterLoginScreen extends MainScreen implements BrowserFieldNaviga
         vfm = new VerticalFieldManager(USE_ALL_WIDTH);
         vfm.add(hfm1);
         vfm.add(hfm2);
+        
+        showLoading();
     }
 
     protected void showContent() {
@@ -157,7 +154,7 @@ public class TwitterLoginScreen extends MainScreen implements BrowserFieldNaviga
     }
 
     protected void fetch() {
-        bf.displayContent(factory.getHttpConnection(url), "");
+        bf.requestContent(url);
     }
 
     protected boolean onSavePrompt() {
@@ -237,27 +234,6 @@ public class TwitterLoginScreen extends MainScreen implements BrowserFieldNaviga
             Logger.info("BF-DownloadProgress(): " + document.getDocumentURI());
         }
 
-    }
-
-    protected class MyBrowserFieldDebugger extends BrowserFieldDebugger {
-
-        public void registerContent(int contentType, String url, byte[] content) {
-            String cType = "CONTENT_UNKNOWN";
-            if (contentType == CONTENT_ARTWORK) {
-                cType = "CONTENT_ARTWORK";
-            } else if (contentType == CONTENT_CSS) {
-                cType = "CONTENT_CSS";
-            } else if (contentType == CONTENT_HTML) {
-                cType = "CONTENT_HTML";
-            } else if (contentType == CONTENT_JAVASCRIPT) {
-                cType = "CONTENT_JAVASCRIPT";
-            } else if (contentType == CONTENT_OBJECT) {
-                cType = "CONTENT_OBJECT";
-            } else if (contentType == CONTENT_XHR) {
-                cType = "CONTENT_XHR";
-            }
-            Logger.debug("BF-RegisterContent(): [" + cType + "] " + url + ": " + content);
-        }
     }
 
     protected void attachTransition(int transitionType) {

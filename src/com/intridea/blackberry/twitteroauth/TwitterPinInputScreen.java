@@ -39,7 +39,7 @@ public class TwitterPinInputScreen extends ActionScreen {
         ButtonField save = new ButtonField("Process", Field.FIELD_HCENTER);
         save.setChangeListener(new FieldChangeListener() {
             public void fieldChanged(Field field, int context) {
-                if (pin.getText() != null && pin.getText().trim().length() > 0 && pin.getText().trim().length() != 7) {
+                if (pin.getText() != null && pin.getText().trim().length() > 0) {
                     consumer.verifier = pin.getText();
                     UiApplication.getUiApplication().invokeLater(new Runnable() {
                         public void run() {
